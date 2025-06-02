@@ -177,7 +177,7 @@ module cla_8bits(
     assign Cout = C[8]; // carry out, es el ultimo y por eso c[8]
 endmodule
 ```
-## Constrains para basys 3 - ALU
+## Constraints para basys 3 - ALU
 En este caso los contrains pues no son algo tan complejo. Decidi hacerlo a la inversa y asignar mis variables a los constrains y no de manera inversa. En mi opinion se me facilita y es mas sencillo dado que el programa ya esta hecho, no necesito reescribir variable por variable.
 
 De ese modo al principio del archivo .xdg que es el siguiente, hay un pequeno resumen de como se asignan los constrains.
@@ -480,7 +480,7 @@ assign state_0 = state; // se asigna el estado actual a la variable para visuali
 
 endmodule
 ```
-## constrains basys 3 - Aspiradora:
+## Constraints basys 3 - Aspiradora:
 En este aspecto no es muy compilcado. Las entradas y salidas son relativamente pocas. Lo mas complejo en esta seccion, seria el reloj. De maner un poco detallada funciona asi:
 
 - set_property PACKAGE_PIN W5   [get_ports CLK100MHZ] : Se asigna un pin fisico al reloj de 100Mhz en vivado para que este sepa de donde viene el reloj externo. Ese pin es el W5 el cual va soldado directamente al reloj de 100Mhz.
@@ -572,5 +572,4 @@ El resultado de síntesis es un netlist que nombra instancias de LUTs, FFs, carr
 - Timing Constraints (.sdc opcional)
   - Especificar tu frecuencia objetivo (create_clock –period 10 –name clk).
   - Definir entradas asíncronas, false paths o multicycle paths.
-
 
