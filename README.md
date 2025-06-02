@@ -529,6 +529,7 @@ set_property IOSTANDARD LVCMOS33 [get_ports LED[*]]
 
 Vivado lee el codigo HDL (Verilog/VHDL), comprueba consistencia de tipos y puertos, expande los generate y parámetros, resuelve instanciaciones de módulos y construye un netlist lógico. Aquí se valida que el diseño sea sintáctica y estructuralmente correcto antes de llevarlo a síntesis.
 
+
 2) Síntesis (Synthesis)
 
 Traducir el netlist lógico (puertas AND/OR, flops, sumadores, etc.) a una red de primitivas específicas de la FPGA: LUTs, flip-flops, carry-chains, bloques de RAM, DSPs, etc.
@@ -537,12 +538,15 @@ Traducir el netlist lógico (puertas AND/OR, flops, sumadores, etc.) a una red d
 - Asignación de recursos: Decide qué lógica va a ir en LUTs, cuáles aprovecharán los carry-chains, y dónde usará flip-flops integrados.
 - Mapeo: Convierte cada puerta lógica a LUTs de 6 entradas (en Virtex-7 o Artix-7, por ejemplo). Cuando una operación XOR de 8 bits se descompone, Vivado la reparte en varias LUTs.
 
+
 3) Optimizacion post Sintesis:
 - Optimización de ruta del carry: Vivado detecta estructuras típicas de sumadores y las asocia a los carry-chains (un recurso especializado que conecta la salida de carry de una LUT a la siguiente con muy baja latencia).
 - Retiming: Mueve flops a lo largo de la ruta de datos para balancear retardos y mejorar frecuencia máxima.
 
+
 4) Generación de netlist tecnologico:
 El resultado de síntesis es un netlist que nombra instancias de LUTs, FFs, carry slicers, RAMB18, DSP48, etc., listo para colocar en la FPGA.
+
 
 5) Implementación (Implementation)
 - Translate & Assemble: Combina netlists y chequea constraints de pines y de timing.
@@ -558,20 +562,22 @@ El resultado de síntesis es un netlist que nombra instancias de LUTs, FFs, carr
 
 - Route: Trazado de las interconexiones (routing) por la matriz de switchboxes y canales de la FPGA. Vivado busca rutas de baja congestión y que cumplan con los márgenes de timing.
 
+
 6) Timing Analysis: 
 - Se calculan retardos de cada camino crítico (desde flops o entradas a salidas o flops).
 - Si algo excede la meta de frecuencia, Vivado reporta violaciones de timing y propone optimizaciones.
+
 
 7) Bitstream Generation:
 - Finalmente elabora el archivo binario (.bit) que contiene la configuración de todas las LUTs, routing multiplexers y recursos especiales de la FPGA.
 
 # Papel de los Constraints:
-- Mapeo de tus puertos HDL (A[0], sh_sel, LED0, etc.) a pines físicos (PACKAGE_PIN V17, U18, U16…).
+- Mapeo de los puertos HDL, a pines físicos (PACKAGE_PIN V17, U18, U16…).
 - IOSTANDARD define tensión y características eléctricas (LVCMOS33, etc.).
 
 - Sin un XDC completo, la FPGA no sabrá dónde “soldar” cada señal.
 
 - Timing Constraints (.sdc opcional)
-  - Especificar tu frecuencia objetivo (create_clock –period 10 –name clk).
+  - Especificar tu frecuencia objetivo (Por ejemplo al asignar un clock: create_clock –period 10ns es el periodo –name clk es el pin).
   - Definir entradas asíncronas, false paths o multicycle paths.
 
