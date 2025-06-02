@@ -485,9 +485,9 @@ En este aspecto no es muy compilcado. Las entradas y salidas son relativamente p
 
 - set_property PACKAGE_PIN W5   [get_ports CLK100MHZ] : Se asigna un pin fisico al reloj de 100Mhz en vivado para que este sepa de donde viene el reloj externo. Ese pin es el W5 el cual va soldado directamente al reloj de 100Mhz.
 - create_clock -period 10.000 -name sys_clk_pin -waveform {0 5} [get_ports CLK100MHZ] :
-- - period 10.000: el tiempo entre dos flancos de subida consecutivos (un ciclo completo) es de 10 ns.
-- - name sys_clk_pin: le da un nombre interno al objeto de reloj, para referirlo en otras restricciones de timing si es necesario.
-- - waveform {0 5}: define que el flanco de subida ocurre en el instante “0 ns” y el de bajada en “5 ns”. Así Vivado entiende dónde están los flancos de subida/bajada dentro de cada ciclo.
+  - period 10.000: el tiempo entre dos flancos de subida consecutivos (un ciclo completo) es de 10 ns.
+  - name sys_clk_pin: le da un nombre interno al objeto de reloj, para referirlo en otras restricciones de timing si es necesario.
+  - waveform {0 5}: define que el flanco de subida ocurre en el instante “0 ns” y el de bajada en “5 ns”. Así Vivado entiende dónde están los flancos de subida/bajada dentro de cada ciclo.
 
 [get_ports CLK100MHZ]: aplica esta definición de reloj a la señal interna CLK100MHZ (que ya fue atada al pin W5).
 ```
@@ -535,12 +535,42 @@ Traducir el netlist lógico (puertas AND/OR, flops, sumadores, etc.) a una red d
 - Asignación de recursos: Decide qué lógica va a ir en LUTs, cuáles aprovecharán los carry-chains, y dónde usará flip-flops integrados.
 - Mapeo: Convierte cada puerta lógica a LUTs de 6 entradas (en Virtex-7 o Artix-7, por ejemplo). Cuando una operación XOR de 8 bits se descompone, Vivado la reparte en varias LUTs.
 
-Post Sintesis:
+3) Optimizacion post Sintesis:
 - Optimización de ruta del carry: Vivado detecta estructuras típicas de sumadores y las asocia a los carry-chains (un recurso especializado que conecta la salida de carry de una LUT a la siguiente con muy baja latencia).
 - Retiming: Mueve flops a lo largo de la ruta de datos para balancear retardos y mejorar frecuencia máxima.
 
-3) 
+4) Generación de netlist tecnologico:
+El resultado de síntesis es un netlist que nombra instancias de LUTs, FFs, carry slicers, RAMB18, DSP48, etc., listo para colocar en la FPGA.
 
+5) Implementación (Implementation)
+- Translate & Assemble: Combina netlists y chequea constraints de pines y de timing.
 
+- Map: Asigna cada instancia tecnológica a un slice físico de la FPGA.
+  - Los slices son unidades dentro del CLB (Configurable Logic Block) que contienen generalmente 4 LUTs de 6 entradas y 8 flip-flops.
+  - CLB (Configurable Logic Block): grupo de slices con su propia interconexión interna.
+
+- Place: Decide en qué CLB y slice entra cada LUT y cada FF, intentando minimizar rutas largas y congestionamiento.
+  - Se tienen en cuenta:
+  - Constraints de pinout (.xdc) para ubicar señales de I/O en pines específicos.
+  - Timing constraints (SDC) para cumplir requisitos de frecuencia.
+
+- Route: Trazado de las interconexiones (routing) por la matriz de switchboxes y canales de la FPGA. Vivado busca rutas de baja congestión y que cumplan con los márgenes de timing.
+
+6) Timing Analysis: 
+- Se calculan retardos de cada camino crítico (desde flops o entradas a salidas o flops).
+- Si algo excede la meta de frecuencia, Vivado reporta violaciones de timing y propone optimizaciones.
+
+7) Bitstream Generation:
+- Finalmente elabora el archivo binario (.bit) que contiene la configuración de todas las LUTs, routing multiplexers y recursos especiales de la FPGA.
+
+# Papel de los Constraints:
+- Mapeo de tus puertos HDL (A[0], sh_sel, LED0, etc.) a pines físicos (PACKAGE_PIN V17, U18, U16…).
+- IOSTANDARD define tensión y características eléctricas (LVCMOS33, etc.).
+
+- Sin un XDC completo, la FPGA no sabrá dónde “soldar” cada señal.
+
+- Timing Constraints (.sdc opcional)
+  - Especificar tu frecuencia objetivo (create_clock –period 10 –name clk).
+  - Definir entradas asíncronas, false paths o multicycle paths.
 
 
