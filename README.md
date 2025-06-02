@@ -2,6 +2,8 @@
 
 # 1) Alu de 8 bits
 
+## Link del funcionamiento de la ALU 8 bits, con el codigo cargado a la basys 3: [FPGA - ALU 8 bits](https://youtu.be/IEkZB2Pj5U0)
+
 Captura del routing de la Alu
 ![implmentacion alu 2](https://github.com/user-attachments/assets/b781bf8c-ecc7-46fa-b87f-edb65027d835)
 
