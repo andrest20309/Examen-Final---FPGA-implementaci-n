@@ -2,6 +2,9 @@
 
 # 1) Alu de 8 bits
 
+Captura del routing de la Alu
+![implmentacion alu 2](https://github.com/user-attachments/assets/b781bf8c-ecc7-46fa-b87f-edb65027d835)
+
 Basicamente el codigo es casi el mismo que se utilizo en el segundo parcial. La diferencias clave estan en la implementacion de un sumador carry look-ahead, el cual funciona como submodulo y realiza las operacion de suma en todo momento. Sin embargo no significa que no pueda variar segun la combinacion de botones que se elija para las operaciones:
 
 Las combinaciones posibles son de 6 bits y serian las siguientes:
@@ -52,8 +55,8 @@ module Alu_8bits(
     // suma: Cin = 0, no hay carry in
     // se instacia el carry look ahead para la suma
     cla_8bits cla_sum (
-        .A(A), // asignar a A CLA, el A del input de la ALU
-        .B(B), // lo mismo para B, a CLA el input de la ALU
+        .A(A), // asignar a A CLA, el A del input de la ALU que viene de los switches.
+        .B(B), // lo mismo para B, a CLA el input de la ALU.
         .Cin(1'b0), // carry igual a 0
         .Sum(sum_out), // asignar a la suma de CLA la suma de la ALU, es decir Sum
                        // "empuja" (da el valor) de la suma realizada a sum_out
@@ -64,7 +67,7 @@ module Alu_8bits(
     // instacia para la resta con el carry look ahead adder
     wire [7:0] B_comp = ~B; // B complemento
     cla_8bits cla_diff (
-        .A(A), // asignar a A CLA, el A del input de la ALU
+        .A(A), // asignar a A CLA, el A del input de la ALU 
         .B(B_comp), // asignar a B de la CLA, el complemento de B de la entrada de ALU 
         .Cin(1'b1), // carry igual a 1
         .Sum(diff_out), // asignar a la resta de CLA la resta de la ALU, es decir Sum
@@ -175,6 +178,9 @@ module cla_8bits(
 endmodule
 ```
 ## Constrains Para basys 3
+En este caso los contrains pues no son algo tan complejo. Decidi hacerlo a la inversa y asignar mis variables a los constrains y no de manera inversa. En mi opinion se me facilita y es mas sencillo dado que el programa ya esta hecho, no necesito reescribir variable por variable.
+
+De ese modo al principio del archivo .xdg que es el siguiente, hay un pequeno resumen de como se asignan los constrains.
 ```
 ## basys-3 pinout
 ##   - SW[0..7]  -> A[0..7]
@@ -344,10 +350,132 @@ set_property IOSTANDARD LVCMOS33 [get_ports N]
 set_property PACKAGE_PIN U3  [get_ports V]
 set_property IOSTANDARD LVCMOS33 [get_ports V]
 ```
-## Algunas fotos de la implementacion:
-![implmentacion alu 1](https://github.com/user-attachments/assets/f278b7ae-6dbb-4811-9fde-24f4163c57d3)
+## Capturas de la implementacion:
 ![implmentacion alu 2](https://github.com/user-attachments/assets/0094424a-26f7-4487-9310-71d9c555b84d)
 ![implmentacion alu 3](https://github.com/user-attachments/assets/f3170572-08c0-469a-95d5-ad7194a7585a)
 
 
+# 2) FSM - Aspiradora
+
+Diagrama de logica de funcionamiento de la aspiradora - solo es tipo Moore.
+![diagramafsmaspiradora](https://github.com/user-attachments/assets/303d78b7-00e0-49b2-a5a9-f95840b57a2d)
+
+Este codigo es mucho mas sencillo, empezamos por lo que es nuetro top level. Basicamente aqui lo unico que se lleva a cabo es la conexion de los constrains [el hardaware fisico], con nuestras variables. Bien se asignan los constrains a variables, pero luego estos son nuevamente instanciados a nuestro submodulo, que es donde la aspiradora (fsm) realmente funciona.
+
+De igual forma y de manera mas prescisa en este caso se utiliza un clock interno del fpga a 100Mhz, este servira para detectar los flancos de subida de los "sensores" (switches), lo cual no evita usar detecciones como "high" o "low", que harian de una instruccion algo repetitivo.
+```
+`timescale 100ns / 1ps
+
+module top_fsm_aspiradora (
+    input  wire CLK100MHZ,   // reloj a 100 MHz
+    input  wire [3:0] SW,    // SW0=power_off, SW1=on, SW2=cleaning, SW3=evading
+    output wire [1:0] led    // led0 y led1 muestran el estado actual
+);
+
+    // renombramos para claridad
+    // solo les damos nombres a cada i del array de los switches
+    wire power_off  = SW[0];
+    wire on         = SW[1];
+    wire cleaning   = SW[2];
+    wire evading    = SW[3];
+
+    // conexion, canal, para ver el estado de la
+    // aspiradora
+    logic [1:0] state;
+
+    // instanciamos la fsm (las "opoeraciones"), y exponemos solo state
+    FSM_Aspiradora (
+        .clk        (CLK100MHZ),
+        .power_off  (power_off),
+        .on         (on),
+        .cleaning   (cleaning),
+        .evading    (evading),
+        .state_0    (state)
+    );
+
+    // conectamos los leds 0 y 1 con el estado en que se encuentran
+    assign led = state;
+endmodule
+```
+## Sub-modulo de la fsm - Aspiradora
+
+En este modulo se ejecutan las operaciones que la aspiradora realizara. En este caso hay un detalle importante y es que al usar un clock, es importante definir por ejemplo, en que momentos se captan los cambios de estado. Es decir que, los switches simulan ser mis "sensores", y dado que los muevo de forma manual, es conveniente no tener rebotes o bien, operaciones repetitivas. Para esto se emplea la detecion del flanco positivo, ya que si se utiliza la deteccion de un "high" o "low" estado alto o bajo, este seria repetitivo en todos los ciclos, a diferencia un flanco positivo seria cuestion de una sola deteccion (one-shot). Y aunque el boton o switch queden en estado alto o bajo, no hara que la operacion sea repetitiva y da lugar a que se puedan captar nuevos estados mas rapidamente.
+
+```
+// definicion de entradas y salidas, al ser "semi-automatica" no requiere salidas en realidad.
+module FSM_Aspiradora  (input logic clk,
+                        input logic power_off,
+                        input logic on,
+                        input logic cleaning,
+                        input logic evading,
+                        output logic [1:0] state_0); // Solo para visualizar el estado.
+// se definen y enumeran los estados                        
+typedef enum logic [1:0] {off_s, exploring_s, cleaning_s, evading_s} state_type;
+
+// registro de estados
+state_type state, next_state;
+
+// registro de estado de power_off, logica secuencial a base de flip-flops
+always_ff @(posedge clk or posedge power_off) begin // posedge -> flanco positivo.
+                                           // begin y end
+                                           // sirven para delimitar un bloque de sentencias.
+    if(power_off) // se fuerza un reset que es asincrono, este puede darse en cualquier
+        state <= off_s;// momento de la "ejecucion".
+    else 
+        state <= next_state; // si no hay orden de apagado, se carga el next state en cada cambio de flanco
+end                          // positivo del reloj.
+
+// la logica combinacional del cambio de estados:
+
+always_comb begin // bloque de logica combinacional.   
+    next_state = state; // si no hay cambios, se queda en el estado actual.    
+    case (state)  
+          
+        off_s: begin
+            if (on)
+            // solo se sale de off si on se activa y automaticamente ira a explorar.
+                next_state = exploring_s;
+            else 
+            // si on no se activa, la aspiradora se quedaria en reposo.
+                next_state = off_s;
+        end
+        
+        exploring_s: begin // mientras la aspiradora explora tiene 3 posibles estados que le sigan:
+            if (power_off) // si hay senal de apagado, pues la aspiradora se apaga.
+                next_state = off_s;
+            else if (cleaning)  // si hay senal de suciedad, pues la aspiradora comenzara a limpiar.
+                next_state = cleaning_s;
+            else if (evading)// si hay senal de obstaculo, pues esquiva el obstaculo.
+                next_state = evading_s;
+            else // si no se da uno de los casos anteriores, la aspiradora continua explorando.
+                next_state = exploring_s;
+        end
+        
+        cleaning_s: begin // es el bloque para los cambios de estado mientras "aspira"
+            if (power_off) // si hay senal de apagado, pues la aspiradora se apaga.
+                next_state = off_s;
+            else if (!cleaning) // si no hay senal de suciedad, la aspiradora regresa a explorar.
+                next_state = exploring_s; 
+            else // si no hay cambios en los inputs, la aspiradora sigue limpiando (aspirando).
+                next_state = cleaning_s;
+            end
+            
+        evading_s: begin
+            if (power_off) // si hay senal de apagado, la aspiradora se apaga.
+                next_state = off_s;
+            else if (!evading) // si deja de haber obstaculo, la aspiradora continua explorando.
+                next_state = exploring_s;
+            else // si no hay cambios en los inputs, la aspiradora continuara explorando.
+                next_state = evading_s;
+            end
+    endcase // se terminan los posibles casos o mas bien, casos de cambios de estado.
+end // termina bloque de logica secuencial.
+
+assign state_0 = state; // se asigna el estado actual a la variable para visualizarlo. No tienen otro proposito.
+
+endmodule
+```
+## Capturas de la implementacion de la fsm-Aspiradora:
+![implmentacion fsm 1](https://github.com/user-attachments/assets/b8386fa4-2188-492c-a06f-c769569e1106)
+![implmentacion fsm 2](https://github.com/user-attachments/assets/480add19-fa40-4e45-aa2a-c383541b86ad)
 
