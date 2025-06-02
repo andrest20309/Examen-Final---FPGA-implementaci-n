@@ -1,4 +1,4 @@
-# Examen-Final FPGA-implementacion
+## Examen-Final FPGA-implementacion
 
 # 1) Alu de 8 bits
 
@@ -177,7 +177,7 @@ module cla_8bits(
     assign Cout = C[8]; // carry out, es el ultimo y por eso c[8]
 endmodule
 ```
-## Constrains Para basys 3
+## Constrains para basys 3 - ALU
 En este caso los contrains pues no son algo tan complejo. Decidi hacerlo a la inversa y asignar mis variables a los constrains y no de manera inversa. En mi opinion se me facilita y es mas sencillo dado que el programa ya esta hecho, no necesito reescribir variable por variable.
 
 De ese modo al principio del archivo .xdg que es el siguiente, hay un pequeno resumen de como se asignan los constrains.
@@ -350,12 +350,17 @@ set_property IOSTANDARD LVCMOS33 [get_ports N]
 set_property PACKAGE_PIN U3  [get_ports V]
 set_property IOSTANDARD LVCMOS33 [get_ports V]
 ```
-## Capturas de la implementacion:
+## Capturas del diseno de la implementacion de la ALU:
 ![implmentacion alu 2](https://github.com/user-attachments/assets/0094424a-26f7-4487-9310-71d9c555b84d)
 ![implmentacion alu 3](https://github.com/user-attachments/assets/f3170572-08c0-469a-95d5-ad7194a7585a)
 
 
+
+
+
 # 2) FSM - Aspiradora
+
+## Link del funcionamiento de la aspiradora, con el codigo cargado a la basys 3: [FPGA - Aspiradora](https://youtu.be/veOmlCN_qPY)
 
 Diagrama de logica de funcionamiento de la aspiradora - solo es tipo Moore.
 ![diagramafsmaspiradora](https://github.com/user-attachments/assets/303d78b7-00e0-49b2-a5a9-f95840b57a2d)
@@ -475,7 +480,67 @@ assign state_0 = state; // se asigna el estado actual a la variable para visuali
 
 endmodule
 ```
+## constrains basys 3 - Aspiradora:
+En este aspecto no es muy compilcado. Las entradas y salidas son relativamente pocas. Lo mas complejo en esta seccion, seria el reloj. De maner un poco detallada funciona asi:
+
+- set_property PACKAGE_PIN W5   [get_ports CLK100MHZ] : Se asigna un pin fisico al reloj de 100Mhz en vivado para que este sepa de donde viene el reloj externo. Ese pin es el W5 el cual va soldado directamente al reloj de 100Mhz.
+- create_clock -period 10.000 -name sys_clk_pin -waveform {0 5} [get_ports CLK100MHZ] :
+- - period 10.000: el tiempo entre dos flancos de subida consecutivos (un ciclo completo) es de 10 ns.
+- - name sys_clk_pin: le da un nombre interno al objeto de reloj, para referirlo en otras restricciones de timing si es necesario.
+- - waveform {0 5}: define que el flanco de subida ocurre en el instante “0 ns” y el de bajada en “5 ns”. Así Vivado entiende dónde están los flancos de subida/bajada dentro de cada ciclo.
+
+[get_ports CLK100MHZ]: aplica esta definición de reloj a la señal interna CLK100MHZ (que ya fue atada al pin W5).
+```
+## reloj 100 MHz
+set_property PACKAGE_PIN W5   [get_ports CLK100MHZ]
+set_property IOSTANDARD LVCMOS33 [get_ports CLK100MHZ]
+create_clock -period 10.000 -name sys_clk_pin -waveform {0 5} [get_ports CLK100MHZ]
+
+## switches como entradas de los sensores
+# SW0 power_off
+set_property PACKAGE_PIN V17  [get_ports {SW[0]}]
+# SW1 on
+set_property PACKAGE_PIN V16  [get_ports {SW[1]}]
+# SW2 cleaning
+set_property PACKAGE_PIN W16  [get_ports {SW[2]}]
+# SW3 evading
+set_property PACKAGE_PIN W17  [get_ports {SW[3]}]
+set_property IOSTANDARD LVCMOS33 [get_ports SW[*]]
+
+## leds muestran el estado (2 bits) ver diagrama
+# led0 state[0]
+set_property PACKAGE_PIN U16  [get_ports {LED[0]}]
+# led1 state[1]
+set_property PACKAGE_PIN E19  [get_ports {LED[1]}]
+set_property IOSTANDARD LVCMOS33 [get_ports LED[*]]
+```
+
 ## Capturas de la implementacion de la fsm-Aspiradora:
 ![implmentacion fsm 1](https://github.com/user-attachments/assets/b8386fa4-2188-492c-a06f-c769569e1106)
 ![implmentacion fsm 2](https://github.com/user-attachments/assets/480add19-fa40-4e45-aa2a-c383541b86ad)
+
+
+
+# Flujo de trabajo de Vivado, Como funciona?
+
+1) Elaboración (Elaboration):
+
+Vivado lee el codigo HDL (Verilog/VHDL), comprueba consistencia de tipos y puertos, expande los generate y parámetros, resuelve instanciaciones de módulos y construye un netlist lógico. Aquí se valida que el diseño sea sintáctica y estructuralmente correcto antes de llevarlo a síntesis.
+
+2) Síntesis (Synthesis)
+
+Traducir el netlist lógico (puertas AND/OR, flops, sumadores, etc.) a una red de primitivas específicas de la FPGA: LUTs, flip-flops, carry-chains, bloques de RAM, DSPs, etc.
+
+- Optimización lógica: Consolida lógica redundante, minimiza expresiones booleanas y agrupa operadores de igual función.
+- Asignación de recursos: Decide qué lógica va a ir en LUTs, cuáles aprovecharán los carry-chains, y dónde usará flip-flops integrados.
+- Mapeo: Convierte cada puerta lógica a LUTs de 6 entradas (en Virtex-7 o Artix-7, por ejemplo). Cuando una operación XOR de 8 bits se descompone, Vivado la reparte en varias LUTs.
+
+Post Sintesis:
+- Optimización de ruta del carry: Vivado detecta estructuras típicas de sumadores y las asocia a los carry-chains (un recurso especializado que conecta la salida de carry de una LUT a la siguiente con muy baja latencia).
+- Retiming: Mueve flops a lo largo de la ruta de datos para balancear retardos y mejorar frecuencia máxima.
+
+3) 
+
+
+
 
