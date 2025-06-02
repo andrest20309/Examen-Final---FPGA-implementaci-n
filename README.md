@@ -1,4 +1,29 @@
-# Examen-Final---FPGA-implementacion
+# Examen-Final FPGA-implementacion
+
+# 1) Alu de 8 bits
+
+Basicamente el codigo es casi el mismo que se utilizo en el segundo parcial. La diferencias clave estan en la implementacion de un sumador carry look-ahead, el cual funciona como submodulo y realiza las operacion de suma en todo momento. Sin embargo no significa que no pueda variar segun la combinacion de botones que se elija para las operaciones:
+
+Las combinaciones posibles son de 6 bits y serian las siguientes:
+
+- 000 = suma
+- 100 = resta
+- 010 = AND
+- 110 = OR
+- 001 = Right Shift
+- 101 = Left Shift
+- 011 = Arithmetic Right Shift
+- 111 = No asignado / Sin operaciones
+
+En el caso de la implementacion fisica para la eleccion de las operaciones, se debe tomar de la siguiente manera:
+
+- op [0,0,0] - op -> operacion es un array que puede tener 3 valores.
+  
+Para seleccionar entre esas operaciones usamos:
+
+- Boton left es igual a---op[0] -> posicion 0
+- Boton up es igual a----op[1] -> posicion 1
+- Boton right es igual a--op[2] -> posicion 2
 
 ```
 `timescale 100ns / 1ps
@@ -103,7 +128,16 @@ endmodule
 
 ```
 ## Carry Look-Ahead
+Honestamente en mi implementacion debia utilizar el preffix adder, pero no tenia mucha idea de como comenzarlo. En este caso implemente al menos el segundo de mayor dificultad el cual es el carry look-ahead adder. Este se implenta como un submodulo de top, el cual es luego importado a "main" o en este caso a nuestro "top" por medio de la linea:
 
+- `include "cla_8bits.sv"
+
+La idea es poder tener el sumador diferenciado para en caso de ser necesario, modificar y depurar con mas facilidad. Otra parte clave, es que al tenerlo separado podemos hacer una asignacion con los constrains separada. En este caso las entradas son los switches, estas estan directamente relacionadas con el top level, el codigo anterior y de top level, se conectan al submodulo que es el sumador, cla_8bits.
+
+De manera simplificada, mis entradas van:
+- De switch 0 a 7, es el numero A.
+- De swithc 8 a 15 es el numero B.
+- De igual forma la salida es observable en los leds del 0 al 8.
 ```
 module cla_8bits(
     input  wire [7:0] A, // entrada A de 8bits
@@ -194,7 +228,6 @@ set_property PACKAGE_PIN W13 [get_ports {A[7]}]
 #set_property IOSTANDARD LVCMOS33 [get_ports {sw[7]}]
 set_property IOSTANDARD LVCMOS33 [get_ports {A[7]}]
 
-
 ## Switches para B[7:0] (SW8–SW15)
 #set_property PACKAGE_PIN V2 [get_ports {sw[8]}]
 set_property PACKAGE_PIN V2  [get_ports {B[0]}]
@@ -236,7 +269,6 @@ set_property PACKAGE_PIN R2  [get_ports {B[7]}]
 #set_property IOSTANDARD LVCMOS33 [get_ports {sw[15]}]
 set_property IOSTANDARD LVCMOS33 [get_ports {B[7]}]
 
-
 ## Botones (activos-bajo) para sh_sel y op[2:0]
 ## btnC -> sh_sel
 #set_property PACKAGE_PIN U18 [get_ports btnC]
@@ -257,7 +289,6 @@ set_property IOSTANDARD LVCMOS33 [get_ports {op[1]}]
 #set_property PACKAGE_PIN T17 [get_ports btnR]
 set_property PACKAGE_PIN T17 [get_ports {op[2]}]
 set_property IOSTANDARD LVCMOS33 [get_ports {op[2]}]
-
 
 ## Leds para Y[7:0] (Led0–Led7)
 #set_property PACKAGE_PIN U16 [get_ports {led[0]}]
@@ -291,7 +322,6 @@ set_property IOSTANDARD LVCMOS33 [get_ports {Y[6]}]
 #set_property PACKAGE_PIN V14 [get_ports {led[7]}]
 set_property PACKAGE_PIN V14 [get_ports {Y[7]}]
 set_property IOSTANDARD LVCMOS33 [get_ports {Y[7]}]
-
 
 ## leds para flags (Led8–Led11)
 ## C  -> LED8  (led[8] Carry out)
