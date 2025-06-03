@@ -1,5 +1,12 @@
 ## Examen-Final FPGA-implementacion
 
+
+## Disenos 3d con tinytapeout:
+- ALU de 8bits:
+[ALU 8 bits tinytapeout link](https://gds-viewer.tinytapeout.com/?process=SG13G2&model=https%3A%2F%2Fandresjosuetoledocalderon.github.io%2Falu_8bit%2F%2Ftinytapeout.gds)
+- FSM Moore:
+[fsm_Aspiradora_Moore_link](https://gds-viewer.tinytapeout.com/?model=https://andresjosuetoledocalderon.github.io/fsm_aspiradora_moore/tinytapeout.gds&process=SG13G2)
+
 # 1) Alu de 8 bits
 
 ## Link del video de funcionamiento de la ALU 8 bits, con el codigo cargado a la basys 3: [FPGA - ALU 8 bits](https://youtu.be/IEkZB2Pj5U0)
